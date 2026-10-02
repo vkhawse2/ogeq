@@ -36,8 +36,17 @@ add_compile_definitions(
 include(CTest)
 enable_testing()
 
+# Phase 1: DSP engine + tests build everywhere.
+# Phase 2+: APO/UI need the Windows WDK (audioenginebaseapo.h) -- opt-in.
+option(OGEQ_BUILD_APO "Build the APO DLL (needs WDK)" OFF)
+option(OGEQ_BUILD_UI "Build the Win32 UI" OFF)
+
 add_subdirectory(AudioEngine)
 add_subdirectory(Tests)
-add_subdirectory(APO)
-add_subdirectory(UI)
+if(OGEQ_BUILD_APO)
+    add_subdirectory(APO)
+endif()
+if(OGEQ_BUILD_UI)
+    add_subdirectory(UI)
+endif()
 # Service/ and SpatialAudio/ are Phase 3/4; their CMakeLists are stubs.
