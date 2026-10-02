@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure (MSVC, static CRT)
+        run: >
+          cmake -S . -B build
+          -DOGEQ_BUILD_ID="${{ github.sha }}"
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: DSP unit tests
+        run: ctest --test-dir build -C Release --output-on-failure
+        # Tests/ is a stub until the harness lands; this step no-ops cleanly.
+
+      - name: Stamp version
+        shell: pwsh
+        run: |
+          $ver = (Select-String -Path CMakeLists.txt -Pattern 'set\(OGEQ_VERSION "([^"]+)"\)').Matches.Groups[1].Value
+          "OGEQ_VERSION=$ver" >> $env:GITHUB_ENV
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ogeq-${{ env.OGEQ_VERSION }}-${{ github.sha }}
+          path: |
+            build/UI/Release/OGEQ.exe
+            build/APO/Release/OGEQ_APO.dll
+          if-no-files-found: warn
