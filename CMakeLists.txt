@@ -43,6 +43,7 @@ option(OGEQ_BUILD_UI "Build the Win32 UI" OFF)
 
 add_subdirectory(AudioEngine)
 add_subdirectory(Tests)
+add_subdirectory(tools)
 if(OGEQ_BUILD_APO)
     add_subdirectory(APO)
 endif()
