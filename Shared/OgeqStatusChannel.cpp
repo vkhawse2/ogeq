@@ -1,6 +1,8 @@
 // OgeqStatusChannel.cpp
 
 #include "OgeqStatusChannel.h"
+#include <cstdio>
+#include <cwchar>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -12,13 +14,14 @@ void StatusChannelWriter::hashEndpoint(const wchar_t* endpointId, wchar_t* outNa
     // FNV-1a 32-bit hash of the endpoint string.
     uint32_t h = 2166136261u;
     for (const wchar_t* p = endpointId; *p; ++p) {
-        h ^= (uint32_t)(*p & 0xFFFF);
+        uint32_t ch = (uint32_t)*p;
+        h ^= (ch & 0xFFFF);
         h *= 16777619u;
-        h ^= (uint32_t)((*p >> 16) & 0xFFFF);
+        h ^= ((ch >> 16) & 0xFFFF);
         h *= 16777619u;
     }
 #ifdef _WIN32
-    _snwprintf_s(outName, outChars, _TRUNCATE, L"%s%08x", IpcMappingPrefix(), h);
+    std::swprintf(outName, outChars, L"%s%08x", IpcMappingPrefix(), h);
 #else
     snprintf(nullptr, 0, ""); // non-Windows: stub
 #endif

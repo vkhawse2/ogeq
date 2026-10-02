@@ -64,11 +64,11 @@ bool parseEq(const std::string& spec, ogeq::DspSettings& settings) {
 bool applyPreset(const std::string& name, ogeq::DspSettings& s) {
     // 5-band presets: {freq, q, gain}
     static const std::map<std::string, std::vector<std::tuple<float,float,float>>> presets = {
-        {"flat",         {{60,1,0},  {230,1,0},  {910,1,0},  {3600,1,0},  {14000,1,0}}},
-        {"bass_boost",   {{60,1,6},  {230,1,3},  {910,1,0},  {3600,1,0},  {14000,1,0}}},
-        {"treble_boost", {{60,1,0},  {230,1,0},  {910,1,0},  {3600,1,2},  {14000,1,5}}},
-        {"vocal_boost",  {{60,1,-2}, {230,1,0},  {910,1,3},  {3600,1,4},  {14000,1,1}}},
-        {"loudness",     {{60,1,5},  {230,1,2},  {910,1,0},  {3600,1,1},  {14000,1,4}}},
+        {"flat",         {{60.0f,1.0f,0.0f},  {230.0f,1.0f,0.0f},  {910.0f,1.0f,0.0f},  {3600.0f,1.0f,0.0f},  {14000.0f,1.0f,0.0f}}},
+        {"bass_boost",   {{60.0f,1.0f,6.0f},  {230.0f,1.0f,3.0f},  {910.0f,1.0f,0.0f},  {3600.0f,1.0f,0.0f},  {14000.0f,1.0f,0.0f}}},
+        {"treble_boost", {{60.0f,1.0f,0.0f},  {230.0f,1.0f,0.0f},  {910.0f,1.0f,0.0f},  {3600.0f,1.0f,2.0f},  {14000.0f,1.0f,5.0f}}},
+        {"vocal_boost",  {{60.0f,1.0f,-2.0f}, {230.0f,1.0f,0.0f},  {910.0f,1.0f,3.0f},  {3600.0f,1.0f,4.0f},  {14000.0f,1.0f,1.0f}}},
+        {"loudness",     {{60.0f,1.0f,5.0f},  {230.0f,1.0f,2.0f},  {910.0f,1.0f,0.0f},  {3600.0f,1.0f,1.0f},  {14000.0f,1.0f,4.0f}}},
     };
     auto it = presets.find(name);
     if (it == presets.end()) {

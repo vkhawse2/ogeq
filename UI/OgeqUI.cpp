@@ -170,12 +170,16 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             // Frequency label (text set by LayoutSliders)
             g_state.hwndFreqLabels[i] = CreateWindowW(L"STATIC", L"",
                 WS_CHILD | SS_CENTER,
-                0, 0, 110, 20, hwnd, (HMENU)(IDC_EQ_LABEL_BASE + i), g_hInst, nullptr);
+                0, 0, 110, 20, hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(IDC_EQ_LABEL_BASE + i)),
+                g_hInst, nullptr);
 
             g_state.hwndSliders[i] = CreateWindowW(TRACKBAR_CLASSW, L"",
                 WS_CHILD | TBS_VERT | TBS_BOTH | TBS_NOTICKS,
                 0, 0, 50, sliderH,
-                hwnd, (HMENU)(IDC_EQ_SLIDER_BASE + i), g_hInst, nullptr);
+                hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(IDC_EQ_SLIDER_BASE + i)),
+                g_hInst, nullptr);
             SendMessageW(g_state.hwndSliders[i], TBM_SETRANGE, TRUE,
                          MAKELONG(SLIDER_MIN, SLIDER_MAX));
             SendMessageW(g_state.hwndSliders[i], TBM_SETPOS, TRUE, 0);
@@ -183,7 +187,9 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             g_state.hwndValueLabels[i] = CreateWindowW(L"STATIC", L"+0.0",
                 WS_CHILD | SS_CENTER,
                 0, 0, 110, 20,
-                hwnd, (HMENU)(IDC_EQ_VALUE_BASE + i), g_hInst, nullptr);
+                hwnd,
+                reinterpret_cast<HMENU>(static_cast<INT_PTR>(IDC_EQ_VALUE_BASE + i)),
+                g_hInst, nullptr);
 
             g_state.bandGains[i] = 0.0f;
         }
@@ -381,7 +387,7 @@ int OgeqUIRun(HINSTANCE hInstance, int nCmdShow) {
     wc.cbSize = sizeof(wc);
     wc.lpfnWndProc = MainWndProc;
     wc.hInstance = hInstance;
-    wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+    wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wc.lpszClassName = className;
     RegisterClassExW(&wc);

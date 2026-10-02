@@ -34,9 +34,10 @@ public:
 
     bool isOpen() const { return view_ != nullptr; }
 
-private:
+    // Public for StatusChannelReader to share the naming scheme.
     static void hashEndpoint(const wchar_t* endpointId, wchar_t* outName, size_t outChars);
 
+private:
 #ifdef _WIN32
     HANDLE mapping_ = nullptr;
     OgeqStatus* view_ = nullptr;
