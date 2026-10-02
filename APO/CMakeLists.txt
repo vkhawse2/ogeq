@@ -18,6 +18,13 @@ target_include_directories(ogeq_apo PRIVATE
     ${CMAKE_SOURCE_DIR}/Shared
 )
 
+# WDK headers (audioenginebaseapo.h). On CI, provided via NuGet;
+# locally, set WDK_INCLUDE_DIR to %ProgramFiles(x86)%\Windows Kits\10\Include\<ver>\shared
+# or install the WDK.
+if(DEFINED WDK_INCLUDE_DIR)
+    target_include_directories(ogeq_apo PRIVATE ${WDK_INCLUDE_DIR})
+endif()
+
 # APO registration metadata (used by DllRegisterServer + the UI attach flow):
 #   CLSID: {b8122668-b395-481b-a516-03d4014e4421}
 #   u32MaxInstances = 1 (24H2 graph-builder stability lesson)

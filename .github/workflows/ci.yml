@@ -17,10 +17,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Restore WDK NuGet (for audioenginebaseapo.h)
+        run: |
+          nuget install Microsoft.Windows.WDK.x64 -Version 10.0.26100.1 `
+            -OutputDirectory ${{ github.workspace }}/wdk-nuget
+          $wdkInc = Get-ChildItem -Path "${{ github.workspace }}/wdk-nuget" `
+            -Recurse -Directory -Filter "include" | Select-Object -First 1
+          "WDK_INCLUDE_DIR=$($wdkInc.FullName)" >> $env:GITHUB_ENV
+        shell: pwsh
+
       - name: Configure (MSVC, static CRT)
         run: >
           cmake -S . -B build
           -DOGEQ_BUILD_ID="${{ github.sha }}"
+          -DOGEQ_BUILD_APO=ON
+          -DWDK_INCLUDE_DIR="${{ env.WDK_INCLUDE_DIR }}"
           -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
@@ -43,4 +54,5 @@ jobs:
           path: |
             build/tools/TestPlayer/Release/ogeq_player.exe
             build/Tests/Release/ogeq_dsp_tests.exe
+            build/APO/Release/OGEQ_APO.dll
           if-no-files-found: warn
