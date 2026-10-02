@@ -33,6 +33,9 @@ add_compile_definitions(
     OGEQ_BUILD_ID="${OGEQ_BUILD_ID}"
 )
 
+include(CTest)
+enable_testing()
+
 add_subdirectory(AudioEngine)
 add_subdirectory(Tests)
 add_subdirectory(APO)
