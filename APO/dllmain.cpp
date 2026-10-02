@@ -54,13 +54,15 @@ public:
         if (!apo) return E_OUTOFMEMORY;
         if (FAILED(hr)) { delete apo; return hr; }
 
-        // If aggregated, return the inner IUnknown; else QI for the requested IID.
         if (pOuter) {
-            *ppv = static_cast<IUnknown*>(apo);
-            // CBaseAudioProcessingObject already AddRef'd for the inner unknown.
+            // Aggregated: return the non-delegating IUnknown.
+            // The constructor already did NonDelegatingAddRef (ref_=1).
+            *ppv = static_cast<IAudioProcessingObject*>(apo);
+            // QI for IUnknown on the APO returns the IAudioProcessingObject*,
+            // which is fine -- it's the identity.
         } else {
-            hr = apo->QueryInterface(riid, ppv);
-            apo->Release(); // QI AddRef'd; balance the constructor ref.
+            hr = apo->NonDelegatingQueryInterface(riid, ppv);
+            apo->NonDelegatingRelease(); // Balance constructor ref; QI AddRef'd.
         }
         return hr;
     }

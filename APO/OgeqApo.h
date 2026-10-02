@@ -1,53 +1,85 @@
-// OgeqApo.h -- OGEQ Audio Processing Object.
+// OgeqApo.h -- OGEQ Audio Processing Object (modern WDK API).
 //
-// Design notes carried over from the MiniEQ lineage:
-//  - Full COM aggregation support (engine creates us aggregated; a
-//    CLASS_E_NOAGGREGATION factory is skipped in total silence).
-//  - Static CRT only (no runtime DLL dependency beside audiodg.exe).
-//  - u32MaxInstances = 1 for EFX (UINT32_MAX correlated with graph-builder
-//    instability on Win11 24H2).
-//  - No file I/O, registry, or allocation on the RT path. Ever.
-//  - Initialize() does the minimum: endpoint id + settings load.
-//    Heavy work is deferred to first LockForProcess().
+// Targets WDK 10.0.26100+ which removed CBaseAudioProcessingObject.
+// Implements IAudioProcessingObject* directly with full COM aggregation.
+//
+// Design notes from MiniEQ lineage:
+//  - Engine always creates us aggregated; factory must NOT return
+//    CLASS_E_NOAGGREGATION.
+//  - Static CRT only.
+//  - u32MaxInstances = 1 (24H2 graph-builder stability).
+//  - No file I/O, registry, or allocation on the RT path.
 
 #pragma once
 
 #include <audioenginebaseapo.h>
+#include <audioclient.h>
 #include "../AudioEngine/include/DspProcessor.h"
 #include "../Shared/OgeqStatusChannel.h"
 
-// {b8122668-b395-481b-a516-03d4014e4421} -- generated 2026-10-02, never reuse MiniEQ's CLSID.
+// {b8122668-b395-481b-a516-03d4014e4421}
 DEFINE_GUID(CLSID_OgeqApo,
     0xb8122668, 0xb395, 0x481b, 0xa5, 0x16, 0x03, 0xd4, 0x01, 0x4e, 0x44, 0x21);
 
 namespace ogeq {
 
-class OgeqApo : public CBaseAudioProcessingObject {
+class OgeqApo : public IAudioProcessingObject,
+                public IAudioProcessingObjectConfiguration,
+                public IAudioProcessingObjectRT,
+                public IAgileObject {
 public:
     OgeqApo(IUnknown* outer, HRESULT* hr);
     virtual ~OgeqApo();
 
+    // IUnknown (delegating for aggregation)
+    STDMETHODIMP QueryInterface(REFIID riid, void** ppv) override;
+    STDMETHODIMP_(ULONG) AddRef() override;
+    STDMETHODIMP_(ULONG) Release() override;
+
     // IAudioProcessingObject
     STDMETHODIMP Initialize(UINT32 cbDataSize, BYTE* pbyData) override;
+    STDMETHODIMP GetInputChannelCount(UINT32* pu32ChannelCount) override;
+    STDMETHODIMP GetLatency(HNSTIME* pTime) override;
+    STDMETHODIMP GetRegistrationProperties(APO_REG_PROPERTIES** ppRegProps) override;
+    STDMETHODIMP IsInputFormatSupported(IAudioMediaType* pOutputFormat,
+                                        IAudioMediaType* pRequestedInputFormat,
+                                        IAudioMediaType** ppSupportedInputFormat) override;
+    STDMETHODIMP IsOutputFormatSupported(IAudioMediaType* pInputFormat,
+                                         IAudioMediaType* pRequestedOutputFormat,
+                                         IAudioMediaType** ppSupportedOutputFormat) override;
+
+    // IAudioProcessingObjectConfiguration
     STDMETHODIMP LockForProcess(UINT32 u32NumInputConnections,
                                 APO_CONNECTION_DESCRIPTOR** ppInputConnections,
                                 UINT32 u32NumOutputConnections,
                                 APO_CONNECTION_DESCRIPTOR** ppOutputConnections) override;
+    STDMETHODIMP UnlockForProcess() override;
+
+    // IAudioProcessingObjectRT
     STDMETHODIMP_(void) APOProcess(UINT32 u32NumInputConnections,
                                    APO_CONNECTION_PROPERTY** ppInputConnections,
                                    UINT32 u32NumOutputConnections,
                                    APO_CONNECTION_PROPERTY** ppOutputConnections) override;
-    STDMETHODIMP UnlockForProcess() override;
+    STDMETHODIMP CalcInputFrames(UINT32 u32OutputFrameCount, UINT32* pu32InputFrameCount) override;
+    STDMETHODIMP CalcOutputFrames(UINT32 u32InputFrameCount, UINT32* pu32OutputFrameCount) override;
 
-    // IAudioSystemEffects3 (mute/volume hooks if needed later)
-    // IAgileObject / FTM via CBaseAudioProcessingObject.
+    // Non-delegating IUnknown for aggregation
+    STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);
+    STDMETHODIMP_(ULONG) NonDelegatingAddRef();
+    STDMETHODIMP_(ULONG) NonDelegatingRelease();
 
 private:
+    HRESULT GetFloat32Format(IAudioMediaType* pFormat, WAVEFORMATEX** ppWfex);
+
+    IUnknown* outer_;           // Controlling unknown (for aggregation)
+    long ref_;                  // Non-delegating refcount
+    long nonDelegatingRef_;     // Actually use ref_ for both; outer_ for delegating
+
     DspProcessor dsp_;
     StatusChannelWriter status_;
     bool locked_ = false;
-    // Endpoint ID for the status channel (set from init data in production).
-    // For Phase 2 testing, the UI passes it via APOInitSystemEffects3.
+    UINT32 channels_ = 2;
+    UINT32 sampleRate_ = 48000;
 };
 
 } // namespace ogeq
