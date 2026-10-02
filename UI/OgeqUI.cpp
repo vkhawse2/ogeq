@@ -125,12 +125,23 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                       16, 56, 60, 24, hwnd, nullptr, g_hInst, nullptr);
         g_state.hwndPresetCombo = CreateWindowW(WC_COMBOBOXW,
             L"", WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST,
-            80, 52, 200, 200, hwnd, (HMENU)IDC_PRESET_COMBO, g_hInst, nullptr);
+            80, 52, 200, 300, hwnd, (HMENU)IDC_PRESET_COMBO, g_hInst, nullptr);
         ComboBox_AddString(g_state.hwndPresetCombo, L"Flat");
         ComboBox_AddString(g_state.hwndPresetCombo, L"Bass Boost");
         ComboBox_AddString(g_state.hwndPresetCombo, L"Treble Boost");
         ComboBox_AddString(g_state.hwndPresetCombo, L"Vocal Boost");
         ComboBox_AddString(g_state.hwndPresetCombo, L"Loudness");
+        ComboBox_AddString(g_state.hwndPresetCombo, L"Rock");
+        ComboBox_AddString(g_state.hwndPresetCombo, L"Pop");
+        ComboBox_AddString(g_state.hwndPresetCombo, L"Jazz");
+        ComboBox_AddString(g_state.hwndPresetCombo, L"Classical");
+        ComboBox_AddString(g_state.hwndPresetCombo, L"Hip-Hop");
+        ComboBox_AddString(g_state.hwndPresetCombo, L"Electronic");
+        ComboBox_AddString(g_state.hwndPresetCombo, L"Gaming");
+        ComboBox_AddString(g_state.hwndPresetCombo, L"Movie");
+        ComboBox_AddString(g_state.hwndPresetCombo, L"Podcast");
+        ComboBox_AddString(g_state.hwndPresetCombo, L"Acoustic");
+        ComboBox_AddString(g_state.hwndPresetCombo, L"Night Mode");
         ComboBox_AddString(g_state.hwndPresetCombo, L"Custom");
         ComboBox_SetCurSel(g_state.hwndPresetCombo, 0);
 
@@ -248,16 +259,29 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
         if (id == IDC_PRESET_COMBO && code == CBN_SELCHANGE) {
             int sel = ComboBox_GetCurSel(g_state.hwndPresetCombo);
             int n = g_state.numBands;
-            // Apply preset to visible bands
+            // Preset index: 0=Flat, 1=Bass, 2=Treble, 3=Vocal, 4=Loudness,
+            // 5=Rock, 6=Pop, 7=Jazz, 8=Classical, 9=HipHop, 10=Electronic,
+            // 11=Gaming, 12=Movie, 13=Podcast, 14=Acoustic, 15=Night, 16=Custom
             if (n == 5) {
                 static const float presets5[][5] = {
-                    { 0, 0, 0, 0, 0 },       // Flat
-                    { 6, 3, 0, 0, 0 },       // Bass Boost
-                    { 0, 0, 0, 2, 5 },       // Treble Boost
-                    { -2, 0, 3, 4, 1 },      // Vocal Boost
-                    { 5, 2, 0, 1, 4 },       // Loudness
+                    { 0, 0, 0, 0, 0 },       // 0 Flat
+                    { 6, 3, 0, 0, 0 },       // 1 Bass Boost
+                    { 0, 0, 0, 2, 5 },       // 2 Treble Boost
+                    { -2, 0, 3, 4, 1 },      // 3 Vocal Boost
+                    { 5, 2, 0, 1, 4 },       // 4 Loudness
+                    { 4, 2,-1, 2, 4 },       // 5 Rock
+                    { 2, 3, 0, 2, 3 },       // 6 Pop
+                    { 3, 2, 0, 2, 3 },       // 7 Jazz
+                    { 4, 2, 0, 2, 4 },       // 8 Classical
+                    { 5, 3, 0, 1, 3 },       // 9 Hip-Hop
+                    { 4, 2, 0, 1, 4 },       // 10 Electronic
+                    { -2, 0, 2, 5, 4 },      // 11 Gaming
+                    { 4, 2, 0, 2, 3 },       // 12 Movie
+                    { -3,-1, 2, 4, 2 },      // 13 Podcast
+                    { 2, 1, 0, 2, 3 },       // 14 Acoustic
+                    { -4,-2, 0,-1,-2 },      // 15 Night Mode
                 };
-                if (sel >= 0 && sel < 5) {
+                if (sel >= 0 && sel < 16) {
                     for (int i = 0; i < 5; i++) {
                         g_state.bandGains[i] = presets5[sel][i];
                         SendMessageW(g_state.hwndSliders[i], TBM_SETPOS, TRUE,
@@ -265,16 +289,28 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
                         UpdateValueLabel(i);
                     }
                 }
+                // sel==16 Custom: keep current
             } else {
-                // 10-band presets (interpolated)
+                // 10-band: 31,62,125,250,500,1k,2k,4k,8k,16k
                 static const float presets10[][OGEQ_MAX_BANDS] = {
-                    { 0,0,0,0,0,0,0,0,0,0 },                 // Flat
-                    { 6,5,4,3,2,0,0,0,0,0 },                 // Bass Boost
-                    { 0,0,0,0,0,1,2,3,4,5 },                 // Treble Boost
-                    { -2,-1,0,1,3,4,3,2,1,0 },               // Vocal Boost
-                    { 5,4,3,2,0,0,1,2,3,4 },                 // Loudness
+                    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },  // 0 Flat
+                    { 6, 5, 4, 3, 2, 0, 0, 0, 0, 0 },  // 1 Bass
+                    { 0, 0, 0, 0, 0, 1, 2, 3, 4, 5 },  // 2 Treble
+                    {-2,-1, 0, 1, 3, 4, 3, 2, 1, 0 },  // 3 Vocal
+                    { 5, 4, 3, 2, 0, 0, 1, 2, 3, 4 },  // 4 Loudness
+                    { 4, 4, 3, 2, 0,-1, 1, 2, 3, 4 },  // 5 Rock
+                    { 2, 3, 3, 3, 1, 0, 1, 2, 2, 3 },  // 6 Pop
+                    { 3, 3, 2, 2, 1, 0, 1, 2, 2, 3 },  // 7 Jazz
+                    { 4, 3, 2, 2, 1, 0, 1, 2, 3, 4 },  // 8 Classical
+                    { 5, 5, 4, 3, 1, 0, 0, 1, 2, 3 },  // 9 Hip-Hop
+                    { 4, 4, 3, 2, 1, 0, 0, 1, 3, 4 },  // 10 Electronic
+                    {-2,-1, 0, 1, 2, 3, 4, 5, 4, 3 },  // 11 Gaming
+                    { 4, 3, 3, 2, 1, 0, 1, 2, 2, 3 },  // 12 Movie
+                    {-3,-2,-1, 0, 1, 3, 4, 3, 2, 1 },  // 13 Podcast
+                    { 2, 2, 1, 1, 0, 1, 2, 2, 3, 3 },  // 14 Acoustic
+                    {-4,-3,-2,-1, 0, 0,-1,-1,-2,-2 },  // 15 Night
                 };
-                if (sel >= 0 && sel < 5) {
+                if (sel >= 0 && sel < 16) {
                     for (int i = 0; i < OGEQ_MAX_BANDS; i++) {
                         g_state.bandGains[i] = presets10[sel][i];
                         SendMessageW(g_state.hwndSliders[i], TBM_SETPOS, TRUE,
