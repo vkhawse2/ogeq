@@ -20,12 +20,13 @@ inline void TraceLog(const wchar_t* fmt, ...) {
     _vsnwprintf_s(buf, _TRUNCATE, fmt, ap);
     va_end(ap);
 
-    // Timestamp
+    // Timestamp + thread ID
     SYSTEMTIME st;
     GetLocalTime(&st);
+    DWORD tid = GetCurrentThreadId();
     wchar_t line[640];
-    _snwprintf_s(line, _TRUNCATE, L"[%02d:%02d:%02d.%03d] %s\r\n",
-                 st.wHour, st.wMinute, st.wSecond, st.wMilliseconds, buf);
+    _snwprintf_s(line, _TRUNCATE, L"[%02d:%02d:%02d.%03d] [tid=%lu] %s\r\n",
+                 st.wHour, st.wMinute, st.wSecond, st.wMilliseconds, tid, buf);
 
     // Append to log file (synchronous, simple -- debug only)
     CreateDirectoryW(L"C:\\ProgramData\\OGEQ", nullptr);
