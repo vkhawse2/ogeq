@@ -51,3 +51,22 @@ target_include_directories(ogeq_apo_trace PRIVATE
 if(DEFINED WDK_INCLUDE_DIR)
     target_include_directories(ogeq_apo_trace PRIVATE ${WDK_INCLUDE_DIR})
 endif()
+
+# Minimal test APO: bare-bones pass-through for engine loading diagnosis.
+# If this loads but OGEQ doesn't, the problem is in OGEQ's implementation.
+# If this doesn't load either, the problem is systemic.
+# Logs to C:\ProgramData\OGEQ\minimal-trace.log
+# CLSID: {d4e5f6a7-b8c9-4d0e-af12-3456789abcde}
+add_library(ogeq_minimal_apo SHARED
+    Minimal/MinimalApo.cpp
+    Minimal/MinimalApo.def
+)
+
+set_target_properties(ogeq_minimal_apo PROPERTIES
+    OUTPUT_NAME "OGEQ_MinimalApo"
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+)
+
+if(DEFINED WDK_INCLUDE_DIR)
+    target_include_directories(ogeq_minimal_apo PRIVATE ${WDK_INCLUDE_DIR})
+endif()
