@@ -4,6 +4,7 @@
 add_library(ogeq_apo SHARED
     OgeqApo.cpp
     dllmain.cpp
+    OGEQ_APO.def
 )
 
 set_target_properties(ogeq_apo PROPERTIES
