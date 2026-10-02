@@ -13,6 +13,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <string>
+#include <vector>
 #include <aclapi.h>
 
 // OGEQ APO CLSID
@@ -186,6 +187,29 @@ static int Attach(const std::wstring& endpointGuid, int slot) {
         wprintf(L"RegSetValueEx failed: %ld\n", lr);
         return 1;
     }
+
+    // Windows 11 also reads the chain form (REG_MULTI_SZ) at slots 13/14/15.
+    // Write our CLSID there too so Win11 picks it up.
+    // Mapping: SFX 5->13, MFX 6->14, EFX 7->15
+    int chainSlot = 0;
+    if (slot == 5) chainSlot = 13;
+    else if (slot == 6) chainSlot = 14;
+    else if (slot == 7) chainSlot = 15;
+    if (chainSlot != 0) {
+        std::wstring chainProp = std::wstring(kFxPropSet) + L"," + std::to_wstring(chainSlot);
+        // REG_MULTI_SZ: our CLSID + double null terminator
+        size_t clsidLen = wcslen(kOgeqClsid);
+        std::vector<wchar_t> multiSz(clsidLen + 2, L'\0');
+        wcscpy_s(multiSz.data(), multiSz.size(), kOgeqClsid);
+        // multiSz is now: CLSID\0\0
+        lr = RegSetValueExW(hKey, chainProp.c_str(), 0, REG_MULTI_SZ,
+                            (const BYTE*)multiSz.data(),
+                            (DWORD)(multiSz.size() * sizeof(wchar_t)));
+        if (lr == ERROR_SUCCESS) {
+            wprintf(L"Also wrote Win11 chain slot %d\n", chainSlot);
+        }
+    }
+    RegCloseKey(hKey);
 
     wprintf(L"Attached OGEQ APO to %s slot %d\n", endpointGuid.c_str(), slot);
     wprintf(L"Unplug/replug the device for the engine to pick it up.\n");
