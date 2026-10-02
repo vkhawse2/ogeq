@@ -94,10 +94,12 @@ STDMETHODIMP OgeqApo::LockForProcess(
 
     dsp_.configure((float)sampleRate, (int)channels);
 
-    // Create per-endpoint status channel for heartbeat telemetry.
-    // (Name derived from endpoint -- see Shared/OgeqIpc.h.
-    //  For now, use a placeholder; the UI passes the endpoint via init data
-    //  in the full Phase 2 implementation.)
+    // Open per-endpoint status channel for heartbeat telemetry.
+    // The endpoint ID comes from init data in production; for Phase 2
+    // bring-up we use a placeholder until the UI passes the real ID.
+    // TODO(Phase 2): extract endpoint GUID from APOInitSystemEffects3.
+    status_.open(L"{00000000-0000-0000-0000-000000000000}");
+    status_.publishFormat(channels, sampleRate, S_OK);
 
     HRESULT hr = CBaseAudioProcessingObject::LockForProcess(
         u32NumInputConnections, ppInputConnections,
@@ -150,12 +152,13 @@ STDMETHODIMP_(void) OgeqApo::APOProcess(
     outProp->u32ValidFrameCount = frames;
     outProp->u32BufferFlags &= ~BUFFER_SILENT;
 
-    // TODO: bump heartbeat in status channel (per-endpoint shm).
+    // Heartbeat: RT-safe seqlock bump.
+    status_.heartbeat();
 }
 
 STDMETHODIMP OgeqApo::UnlockForProcess() {
     locked_ = false;
-    // TODO: close status channel mapping.
+    status_.close();
     return CBaseAudioProcessingObject::UnlockForProcess();
 }
 

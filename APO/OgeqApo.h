@@ -14,6 +14,7 @@
 
 #include <audioenginebaseapo.h>
 #include "../AudioEngine/include/DspProcessor.h"
+#include "../Shared/OgeqStatusChannel.h"
 
 // {b8122668-b395-481b-a516-03d4014e4421} -- generated 2026-10-02, never reuse MiniEQ's CLSID.
 DEFINE_GUID(CLSID_OgeqApo,
@@ -43,7 +44,10 @@ public:
 
 private:
     DspProcessor dsp_;
+    StatusChannelWriter status_;
     bool locked_ = false;
+    // Endpoint ID for the status channel (set from init data in production).
+    // For Phase 2 testing, the UI passes it via APOInitSystemEffects3.
 };
 
 } // namespace ogeq

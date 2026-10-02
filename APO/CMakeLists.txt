@@ -11,7 +11,7 @@ set_target_properties(ogeq_apo PROPERTIES
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
 )
 
-target_link_libraries(ogeq_apo PRIVATE ogeq_dsp)
+target_link_libraries(ogeq_apo PRIVATE ogeq_dsp ogeq_shared)
 
 target_include_directories(ogeq_apo PRIVATE
     ${CMAKE_SOURCE_DIR}/AudioEngine/include

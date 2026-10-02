@@ -6,6 +6,7 @@
 
 #include "OgeqApo.h"
 #include <audioenginebaseapo.h>
+#include <combaseapi.h>  // StringFromGUID2
 
 HINSTANCE g_hInstance = nullptr;
 long g_refCount = 0;
@@ -96,16 +97,78 @@ STDAPI DllCanUnloadNow() {
 // Registration: writes the AudioEngine declaration + COM class.
 // The UI (not the DLL) handles per-endpoint FxProperties.
 STDAPI DllRegisterServer() {
-    // TODO(Phase 2): write
-    //   HKCR\CLSID\{b8122668-...}\InprocServer32 = <dll path>, ThreadingModel=Both
-    //   HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{b8122668-...}
-    //     with FriendlyName, APOInterface0={...IAudioProcessingObject...}, etc.
-    return E_NOTIMPL;
+    wchar_t dllPath[MAX_PATH];
+    if (!GetModuleFileNameW(g_hInstance, dllPath, MAX_PATH))
+        return HRESULT_FROM_WIN32(GetLastError());
+
+    wchar_t clsidStr[64];
+    StringFromGUID2(CLSID_OgeqApo, clsidStr, 64);
+
+    // 1. COM class: HKCR\CLSID\{...}\InprocServer32
+    wchar_t clsidKey[128];
+    swprintf_s(clsidKey, L"CLSID\\%s", clsidStr);
+
+    HKEY hKey;
+    wchar_t inprocKey[160];
+    swprintf_s(inprocKey, L"%s\\InprocServer32", clsidKey);
+    if (RegCreateKeyExW(HKEY_CLASSES_ROOT, inprocKey, 0, nullptr, 0,
+                        KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
+        return E_FAIL;
+    RegSetValueExW(hKey, nullptr, 0, REG_SZ, (BYTE*)dllPath,
+                   (DWORD)((wcslen(dllPath) + 1) * sizeof(wchar_t)));
+    const wchar_t* threading = L"Both";
+    RegSetValueExW(hKey, L"ThreadingModel", 0, REG_SZ, (BYTE*)threading,
+                   (DWORD)((wcslen(threading) + 1) * sizeof(wchar_t)));
+    RegCloseKey(hKey);
+
+    // 2. AudioEngine APO declaration:
+    //    HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{...}
+    wchar_t apoKey[256];
+    swprintf_s(apoKey, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Audio\\AudioEngine\\AudioProcessingObjects\\%s", clsidStr);
+
+    if (RegCreateKeyExW(HKEY_LOCAL_MACHINE, apoKey, 0, nullptr, 0,
+                        KEY_WRITE, nullptr, &hKey, nullptr) != ERROR_SUCCESS)
+        return E_FAIL;
+
+    const wchar_t* friendly = L"OGEQ Audio Equalizer";
+    RegSetValueExW(hKey, L"FriendlyName", 0, REG_SZ, (BYTE*)friendly,
+                   (DWORD)((wcslen(friendly) + 1) * sizeof(wchar_t)));
+
+    // APOInterface0 = IID_IAudioProcessingObject (required)
+    wchar_t iidStr[64];
+    StringFromGUID2(__uuidof(IAudioProcessingObject), iidStr, 64);
+    RegSetValueExW(hKey, L"APOInterface0", 0, REG_SZ, (BYTE*)iidStr,
+                   (DWORD)((wcslen(iidStr) + 1) * sizeof(wchar_t)));
+
+    // u32MaxInstances = 1 (24H2 graph-builder stability lesson from MiniEQ)
+    DWORD maxInst = 1;
+    RegSetValueExW(hKey, L"u32MaxInstances", 0, REG_DWORD, (BYTE*)&maxInst, sizeof(maxInst));
+
+    // u32MinInputConnections / u32MaxInputConnections = 1
+    // u32MinOutputConnections / u32MaxOutputConnections = 1
+    DWORD one = 1;
+    RegSetValueExW(hKey, L"u32MinInputConnections", 0, REG_DWORD, (BYTE*)&one, sizeof(one));
+    RegSetValueExW(hKey, L"u32MaxInputConnections", 0, REG_DWORD, (BYTE*)&one, sizeof(one));
+    RegSetValueExW(hKey, L"u32MinOutputConnections", 0, REG_DWORD, (BYTE*)&one, sizeof(one));
+    RegSetValueExW(hKey, L"u32MaxOutputConnections", 0, REG_DWORD, (BYTE*)&one, sizeof(one));
+
+    RegCloseKey(hKey);
+    return S_OK;
 }
 
 STDAPI DllUnregisterServer() {
-    // TODO(Phase 2): remove the above keys.
-    return E_NOTIMPL;
+    wchar_t clsidStr[64];
+    StringFromGUID2(CLSID_OgeqApo, clsidStr, 64);
+
+    wchar_t clsidKey[128];
+    swprintf_s(clsidKey, L"CLSID\\%s", clsidStr);
+    RegDeleteTreeW(HKEY_CLASSES_ROOT, clsidKey);
+
+    wchar_t apoKey[256];
+    swprintf_s(apoKey, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Audio\\AudioEngine\\AudioProcessingObjects\\%s", clsidStr);
+    RegDeleteTreeW(HKEY_LOCAL_MACHINE, apoKey);
+
+    return S_OK;
 }
 
 BOOL APIENTRY DllMain(HINSTANCE hInstance, DWORD reason, LPVOID) {
