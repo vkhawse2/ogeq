@@ -17,7 +17,7 @@
 #include <aclapi.h>
 
 // OGEQ APO CLSID
-static const wchar_t* kOgeqClsid = L"{b8122668-b395-481b-a516-03d4014e4421}";
+static const wchar_t* kOgeqClsid = L"{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}";
 
 // PKEY_AudioEndpointPlugin_FX_* property set
 static const wchar_t* kFxPropSet = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d}";
