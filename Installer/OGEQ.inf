@@ -1,0 +1,68 @@
+; OGEQ.inf -- INF installer for the OGEQ Audio Processing Object.
+;
+; Installs the OGEQ APO as a software component (not a driver).
+; This is the Microsoft-documented way to register an APO, as opposed to
+; manual registry writes.
+;
+; Usage:
+;   Right-click OGEQ.inf -> Install
+;   Or: pnputil /add-driver OGEQ.inf /install
+;
+; CLSID: {cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=AudioProcessingObject
+ClassGuid={a92c8043-5c5f-4c5f-b8d0-6e4e2b8e8e8e}
+Provider=%ProviderName%
+DriverVer=10/03/2026,1.0.0.0
+CatalogFile=OGEQ.cat
+PnpLockdown=1
+
+[SourceDisksNames]
+1 = %DiskName%,,,
+
+[SourceDisksFiles]
+OGEQ_APO.dll = 1
+
+[DestinationDirs]
+OGEQ_CopyFiles = 11 ; %SystemRoot%\System32
+
+[Manufacturer]
+%ProviderName% = OGEQ_Models, NTamd64
+
+[OGEQ_Models.NTamd64]
+%OGEQ_DeviceDesc% = OGEQ_Install, SWD\OGEQ_APO
+
+[OGEQ_Install]
+CopyFiles = OGEQ_CopyFiles
+AddReg = OGEQ_COM_Register, OGEQ_APO_Register
+
+[OGEQ_CopyFiles]
+OGEQ_APO.dll
+
+; COM class registration
+[OGEQ_COM_Register]
+HKCR,"CLSID\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}\InprocServer32",,,11,"%11%\OGEQ_APO.dll"
+HKCR,"CLSID\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}\InprocServer32","ThreadingModel",0x00000000,"Both"
+
+; APO declaration in AudioEngine
+[OGEQ_APO_Register]
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}","FriendlyName",0x00000000,"OGEQ Audio Equalizer"
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}","Copyright",0x00000000,"Copyright (c) 2026 OGEQ"
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}","MajorVersion",0x00010001,1
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}","MinorVersion",0x00010001,0
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}","Flags",0x00010001,0
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}","NumAPOInterfaces",0x00010001,2
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}","APOInterface0",0x00000000,"{FD7F2B29-24D0-4B5C-B177-592C39F9CA10}"
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}","APOInterface1",0x00000000,"{5FA00F27-ADD6-499A-8A9D-6B98521FA75B}"
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}","u32MaxInstances",0x00010001,1
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}","u32MinInputConnections",0x00010001,1
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}","u32MaxInputConnections",0x00010001,1
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}","u32MinOutputConnections",0x00010001,1
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\AudioEngine\AudioProcessingObjects\{cf5483d7-d830-4fbb-b6c2-1a7753ea9db4}","u32MaxOutputConnections",0x00010001,1
+
+[Strings]
+ProviderName = "OGEQ"
+DiskName = "OGEQ Installation Media"
+OGEQ_DeviceDesc = "OGEQ Audio Processing Object"
