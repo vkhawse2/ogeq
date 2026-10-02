@@ -19,6 +19,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 
+# Static CRT everywhere (/MT). The APO DLL runs inside audiodg.exe which has
+# no VC++ runtime beside it, and mixing MD/MT across linked libs is a
+# LNK2038 error. So: everything static.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 # Build id stamped into binaries (short commit SHA from CI, "dev" locally).
 if(NOT DEFINED OGEQ_BUILD_ID)
     set(OGEQ_BUILD_ID "dev")

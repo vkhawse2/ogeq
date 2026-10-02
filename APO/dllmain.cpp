@@ -4,6 +4,7 @@
 // Our factory must NOT return CLASS_E_NOAGGREGATION -- that's the silent
 // skip that plagued early APO attempts industry-wide.
 
+#define INITGUID  // Actually define the GUIDs declared via DEFINE_GUID
 #include "OgeqApo.h"
 #include <audioenginebaseapo.h>
 #include <combaseapi.h>  // StringFromGUID2
