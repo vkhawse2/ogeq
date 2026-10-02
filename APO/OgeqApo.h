@@ -81,6 +81,7 @@ private:
     bool locked_ = false;
     UINT32 channels_ = 2;
     UINT32 sampleRate_ = 48000;
+    wchar_t endpointId_[64] = L"";  // GUID portion of MMDevice ID, e.g. {acc87fa7-...}
 };
 
 } // namespace ogeq
