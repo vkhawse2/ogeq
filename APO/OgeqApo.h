@@ -15,11 +15,9 @@
 #include <audioenginebaseapo.h>
 #include "../AudioEngine/include/DspProcessor.h"
 
-// {OGEQ-APO-CLSID} -- generate a fresh GUID at first real build:
-//   powershell -c "[guid]::NewGuid()"
-// and replace the placeholder below. Do NOT reuse MiniEQ's CLSID.
+// {b8122668-b395-481b-a516-03d4014e4421} -- generated 2026-10-02, never reuse MiniEQ's CLSID.
 DEFINE_GUID(CLSID_OgeqApo,
-    0x00000000, 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    0xb8122668, 0xb395, 0x481b, 0xa5, 0x16, 0x03, 0xd4, 0x01, 0x4e, 0x44, 0x21);
 
 namespace ogeq {
 

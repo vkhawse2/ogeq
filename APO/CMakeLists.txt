@@ -1,4 +1,6 @@
 # APO DLL: static CRT (MiniEQ lesson -- audiodg has no VC++ runtime beside it).
+# Requires the Windows WDK for audioenginebaseapo.h. Only built when
+# OGEQ_BUILD_APO=ON (not on stock GitHub runners).
 add_library(ogeq_apo SHARED
     OgeqApo.cpp
     dllmain.cpp
@@ -11,6 +13,12 @@ set_target_properties(ogeq_apo PROPERTIES
 
 target_link_libraries(ogeq_apo PRIVATE ogeq_dsp)
 
-# Fresh CLSID per build lineage: generate once with
-#   powershell -c "[guid]::NewGuid()"
-# and bake it into OgeqApo.h. Never reuse MiniEQ's CLSID.
+target_include_directories(ogeq_apo PRIVATE
+    ${CMAKE_SOURCE_DIR}/AudioEngine/include
+    ${CMAKE_SOURCE_DIR}/Shared
+)
+
+# APO registration metadata (used by DllRegisterServer + the UI attach flow):
+#   CLSID: {b8122668-b395-481b-a516-03d4014e4421}
+#   u32MaxInstances = 1 (24H2 graph-builder stability lesson)
+#   APOInterface0 = IID_IAudioProcessingObject
