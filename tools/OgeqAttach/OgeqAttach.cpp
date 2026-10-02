@@ -219,7 +219,9 @@ static int Attach(const std::wstring& endpointGuid, int slot) {
 static int Detach(const std::wstring& endpointGuid) {
     std::wstring subkey = FxKeyPath(endpointGuid);
     int removed = 0;
-    for (int slot = 5; slot <= 7; slot++) {
+    // Clear legacy slots 5/6/7 and Win11 chain slots 13/14/15
+    int slots[] = {5, 6, 7, 13, 14, 15};
+    for (int slot : slots) {
         std::wstring propName = std::wstring(kFxPropSet) + L"," + std::to_wstring(slot);
         HKEY hKey = nullptr;
         LONG lr = RegOpenKeyExW(HKEY_LOCAL_MACHINE, subkey.c_str(), 0, KEY_SET_VALUE, &hKey);
@@ -229,10 +231,24 @@ static int Detach(const std::wstring& endpointGuid) {
         }
         if (lr != ERROR_SUCCESS) continue;
 
-        // Only delete if it's ours
-        wchar_t val[256]; DWORD cb = sizeof(val), type = 0;
+        // Only delete if it's ours (handle both REG_SZ and REG_MULTI_SZ)
+        wchar_t val[512]; DWORD cb = sizeof(val), type = 0;
         lr = RegQueryValueExW(hKey, propName.c_str(), nullptr, &type, (BYTE*)val, &cb);
-        if (lr == ERROR_SUCCESS && type == REG_SZ && _wcsicmp(val, kOgeqClsid) == 0) {
+        bool isOurs = false;
+        if (lr == ERROR_SUCCESS) {
+            if (type == REG_SZ && _wcsicmp(val, kOgeqClsid) == 0) {
+                isOurs = true;
+            } else if (type == REG_MULTI_SZ) {
+                // Check if our CLSID appears in the multi-string
+                const wchar_t* p = val;
+                const wchar_t* end = val + (cb / sizeof(wchar_t));
+                while (p < end && *p) {
+                    if (_wcsicmp(p, kOgeqClsid) == 0) { isOurs = true; break; }
+                    p += wcslen(p) + 1;
+                }
+            }
+        }
+        if (isOurs) {
             if (RegDeleteValueW(hKey, propName.c_str()) == ERROR_SUCCESS) {
                 wprintf(L"Removed slot %d\n", slot);
                 removed++;
