@@ -181,10 +181,10 @@ static int Attach(const std::wstring& endpointGuid, int slot) {
     lr = RegSetValueExW(hKey, propName.c_str(), 0, REG_SZ,
                         (const BYTE*)kOgeqClsid,
                         (DWORD)((wcslen(kOgeqClsid) + 1) * sizeof(wchar_t)));
-    RegCloseKey(hKey);
 
     if (lr != ERROR_SUCCESS) {
         wprintf(L"RegSetValueEx failed: %ld\n", lr);
+        RegCloseKey(hKey);
         return 1;
     }
 
