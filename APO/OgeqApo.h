@@ -26,6 +26,7 @@ namespace ogeq {
 class OgeqApo : public IAudioProcessingObject,
                 public IAudioProcessingObjectConfiguration,
                 public IAudioProcessingObjectRT,
+                public IAudioSystemEffects,
                 public IAgileObject {
 public:
     OgeqApo(IUnknown* outer, HRESULT* hr);

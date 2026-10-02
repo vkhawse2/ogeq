@@ -52,6 +52,8 @@ STDMETHODIMP OgeqApo::NonDelegatingQueryInterface(REFIID riid, void** ppv) {
         *ppv = static_cast<IAudioProcessingObjectConfiguration*>(this);
     } else if (riid == __uuidof(IAudioProcessingObjectRT)) {
         *ppv = static_cast<IAudioProcessingObjectRT*>(this);
+    } else if (riid == __uuidof(IAudioSystemEffects)) {
+        *ppv = static_cast<IAudioSystemEffects*>(this);
     } else if (riid == __uuidof(IAgileObject)) {
         *ppv = static_cast<IAgileObject*>(this);
     } else {

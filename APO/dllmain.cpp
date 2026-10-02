@@ -110,6 +110,10 @@ STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv) {
     wchar_t clsidStr[64] = L"?", iidStr[64] = L"?";
     StringFromGUID2(rclsid, clsidStr, 64);
     StringFromGUID2(riid, iidStr, 64);
+    wchar_t dllPath[MAX_PATH] = L"?";
+    GetModuleFileNameW(g_hInstance, dllPath, MAX_PATH);
+    DWORD pid = GetCurrentProcessId();
+    OGEQ_TRACE(L"OGEQ DLL LOADED: PID=%lu, PATH=%s", pid, dllPath);
     OGEQ_TRACE(L"DllGetClassObject: rclsid=%s, riid=%s", clsidStr, iidStr);
     if (rclsid != CLSID_OgeqApo) {
         OGEQ_TRACE(L"DllGetClassObject: wrong CLSID -> CLASS_E_CLASSNOTAVAILABLE");
@@ -183,7 +187,8 @@ STDAPI DllRegisterServer() {
     RegSetValueExW(hKey, L"Flags", 0, REG_DWORD, (BYTE*)&flags, sizeof(flags));
 
     // NumAPOInterfaces must match the count of APOInterfaceN values.
-    DWORD numIfaces = 1;
+    // We expose IAudioProcessingObject and IAudioSystemEffects.
+    DWORD numIfaces = 2;
     RegSetValueExW(hKey, L"NumAPOInterfaces", 0, REG_DWORD, (BYTE*)&numIfaces, sizeof(numIfaces));
 
     // APOInterface0 = IID_IAudioProcessingObject (required)
@@ -191,6 +196,12 @@ STDAPI DllRegisterServer() {
     StringFromGUID2(__uuidof(IAudioProcessingObject), iidStr, 64);
     RegSetValueExW(hKey, L"APOInterface0", 0, REG_SZ, (BYTE*)iidStr,
                    (DWORD)((wcslen(iidStr) + 1) * sizeof(wchar_t)));
+
+    // APOInterface1 = IID_IAudioSystemEffects (marks us as a system-effects APO)
+    wchar_t iidStr2[64];
+    StringFromGUID2(__uuidof(IAudioSystemEffects), iidStr2, 64);
+    RegSetValueExW(hKey, L"APOInterface1", 0, REG_SZ, (BYTE*)iidStr2,
+                   (DWORD)((wcslen(iidStr2) + 1) * sizeof(wchar_t)));
 
     // u32MaxInstances = 1 (24H2 graph-builder stability lesson from MiniEQ)
     DWORD maxInst = 1;
