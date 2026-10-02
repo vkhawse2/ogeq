@@ -154,7 +154,7 @@ static bool TakeOwnership(const std::wstring& subkey) {
     return true;
 }
 
-static int Attach(const std::wstring& endpointGuid, int slot) {
+static int Attach(const std::wstring& endpointGuid, int slot, const wchar_t* clsid) {
     std::wstring subkey = FxKeyPath(endpointGuid);
     wchar_t valueName[128];
     swprintf_s(valueName, L"%s},%d", kFxPropSet, slot);
@@ -179,8 +179,8 @@ static int Attach(const std::wstring& endpointGuid, int slot) {
     }
 
     lr = RegSetValueExW(hKey, propName.c_str(), 0, REG_SZ,
-                        (const BYTE*)kOgeqClsid,
-                        (DWORD)((wcslen(kOgeqClsid) + 1) * sizeof(wchar_t)));
+                        (const BYTE*)clsid,
+                        (DWORD)((wcslen(clsid) + 1) * sizeof(wchar_t)));
 
     if (lr != ERROR_SUCCESS) {
         wprintf(L"RegSetValueEx failed: %ld\n", lr);
@@ -198,9 +198,9 @@ static int Attach(const std::wstring& endpointGuid, int slot) {
     if (chainSlot != 0) {
         std::wstring chainProp = std::wstring(kFxPropSet) + L"," + std::to_wstring(chainSlot);
         // REG_MULTI_SZ: our CLSID + double null terminator
-        size_t clsidLen = wcslen(kOgeqClsid);
+        size_t clsidLen = wcslen(clsid);
         std::vector<wchar_t> multiSz(clsidLen + 2, L'\0');
-        wcscpy_s(multiSz.data(), multiSz.size(), kOgeqClsid);
+        wcscpy_s(multiSz.data(), multiSz.size(), clsid);
         // multiSz is now: CLSID\0\0
         lr = RegSetValueExW(hKey, chainProp.c_str(), 0, REG_MULTI_SZ,
                             (const BYTE*)multiSz.data(),
@@ -262,19 +262,21 @@ static int Detach(const std::wstring& endpointGuid) {
 
 static void Usage() {
     wprintf(L"Usage:\n");
-    wprintf(L"  ogeq_attach --endpoint {guid} --slot sfx|mfx|efx\n");
+    wprintf(L"  ogeq_attach --endpoint {guid} --slot sfx|mfx|efx [--clsid {guid}]\n");
     wprintf(L"  ogeq_attach --endpoint {guid} --detach\n");
 }
 
 int wmain(int argc, wchar_t** argv) {
     std::wstring endpoint;
     std::wstring slotStr;
+    std::wstring clsidOverride;
     bool detach = false;
 
     for (int i = 1; i < argc; i++) {
         std::wstring a = argv[i];
         if (a == L"--endpoint" && i + 1 < argc) endpoint = argv[++i];
         else if (a == L"--slot" && i + 1 < argc) slotStr = argv[++i];
+        else if (a == L"--clsid" && i + 1 < argc) clsidOverride = argv[++i];
         else if (a == L"--detach") detach = true;
         else { Usage(); return 1; }
     }
@@ -292,5 +294,6 @@ int wmain(int argc, wchar_t** argv) {
     else if (slotStr == L"efx") slot = 7;
     else { Usage(); return 1; }
 
-    return Attach(endpoint, slot);
+    const wchar_t* clsid = clsidOverride.empty() ? kOgeqClsid : clsidOverride.c_str();
+    return Attach(endpoint, slot, clsid);
 }
