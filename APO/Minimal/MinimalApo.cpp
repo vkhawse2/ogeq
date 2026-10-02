@@ -13,6 +13,7 @@
 #include <combaseapi.h>
 #include <cstdio>
 #include <cstdarg>
+#include <new>
 
 // {d4e5f6a7-b8c9-4d0e-af12-3456789abcde}
 DEFINE_GUID(CLSID_MinimalApo,
@@ -182,8 +183,8 @@ public:
             if (frames > ppOutputConnections[0]->u32ValidFrameCount)
                 frames = ppOutputConnections[0]->u32ValidFrameCount;
             // Assume float32 stereo (simplified for test)
-            memcpy(ppOutputConnections[0]->pBuffer,
-                   ppInputConnections[0]->pBuffer,
+            memcpy((void*)ppOutputConnections[0]->pBuffer,
+                   (const void*)ppInputConnections[0]->pBuffer,
                    frames * 2 * sizeof(float));
             ppOutputConnections[0]->u32ValidFrameCount = frames;
             ppOutputConnections[0]->u32BufferFlags = ppInputConnections[0]->u32BufferFlags;
