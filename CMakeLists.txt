@@ -34,6 +34,7 @@ add_compile_definitions(
 )
 
 add_subdirectory(AudioEngine)
+add_subdirectory(Tests)
 add_subdirectory(APO)
 add_subdirectory(UI)
 # Service/ and SpatialAudio/ are Phase 3/4; their CMakeLists are stubs.

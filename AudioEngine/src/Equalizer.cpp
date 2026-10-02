@@ -1,6 +1,7 @@
 // Equalizer.cpp
 
 #include "Equalizer.h"
+#include <cmath>
 
 namespace ogeq {
 
