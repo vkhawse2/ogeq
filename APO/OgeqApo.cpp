@@ -82,25 +82,28 @@ STDMETHODIMP OgeqApo::Initialize(UINT32 cbDataSize, BYTE* pbyData) {
     dsp_.applySettings(defaults);
 
     // Extract the real endpoint ID from APOInitSystemEffects2.
-    // pbyData -> APOInitBaseStruct followed by APOInitSystemEffects2 fields.
-    // We need the IMMDevice to get the endpoint GUID for the status channel.
+    // The struct has pDeviceCollection + nSoftwareIoDeviceInCollection.
     endpointId_[0] = L'\0';
     if (pbyData && cbDataSize >= sizeof(APOInitSystemEffects2)) {
         APOInitSystemEffects2* init = reinterpret_cast<APOInitSystemEffects2*>(pbyData);
         // Validate: first field is APOInitBaseStruct with cbSize
-        if (init->APOInit.cbSize >= sizeof(APOInitSystemEffects2) && init->pDevice) {
-            LPWSTR devId = nullptr;
-            if (SUCCEEDED(init->pDevice->GetId(&devId)) && devId) {
-                // devId looks like: {0.0.0.00000000}.{acc87fa7-c283-45f6-9ef3-66184fcc668e}
-                // Extract the GUID portion after the last '.'
-                const wchar_t* guidPart = wcsrchr(devId, L'.');
-                if (guidPart && guidPart[1] == L'{') {
-                    wcsncpy_s(endpointId_, guidPart + 1, _TRUNCATE);
-                } else {
-                    // Fallback: use the whole ID
-                    wcsncpy_s(endpointId_, devId, _TRUNCATE);
+        if (init->APOInit.cbSize >= sizeof(APOInitSystemEffects2) && init->pDeviceCollection) {
+            IMMDevice* pDevice = nullptr;
+            if (SUCCEEDED(init->pDeviceCollection->Item(init->nSoftwareIoDeviceInCollection, &pDevice)) && pDevice) {
+                LPWSTR devId = nullptr;
+                if (SUCCEEDED(pDevice->GetId(&devId)) && devId) {
+                    // devId looks like: {0.0.0.00000000}.{acc87fa7-c283-45f6-9ef3-66184fcc668e}
+                    // Extract the GUID portion after the last '.'
+                    const wchar_t* guidPart = wcsrchr(devId, L'.');
+                    if (guidPart && guidPart[1] == L'{') {
+                        wcsncpy_s(endpointId_, guidPart + 1, _TRUNCATE);
+                    } else {
+                        // Fallback: use the whole ID
+                        wcsncpy_s(endpointId_, devId, _TRUNCATE);
+                    }
+                    CoTaskMemFree(devId);
                 }
-                CoTaskMemFree(devId);
+                pDevice->Release();
             }
         }
     }
