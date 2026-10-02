@@ -1,3 +1,4 @@
 add_subdirectory(TestPlayer)
 add_subdirectory(OgeqAttach)
 add_subdirectory(OgeqHeartbeat)
+add_subdirectory(ComTest)
