@@ -37,9 +37,10 @@ include(CTest)
 enable_testing()
 
 # Phase 1: DSP engine + tests build everywhere.
-# Phase 2+: APO/UI need the Windows WDK (audioenginebaseapo.h) -- opt-in.
+# APO needs the Windows WDK (audioenginebaseapo.h) -- opt-in.
+# UI only needs the Windows SDK (on CI runners) -- on by default.
 option(OGEQ_BUILD_APO "Build the APO DLL (needs WDK)" OFF)
-option(OGEQ_BUILD_UI "Build the Win32 UI" OFF)
+option(OGEQ_BUILD_UI "Build the Win32 UI" ON)
 
 add_subdirectory(AudioEngine)
 add_subdirectory(Tests)

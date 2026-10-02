@@ -43,4 +43,5 @@ jobs:
           path: |
             build/tools/TestPlayer/Release/ogeq_player.exe
             build/Tests/Release/ogeq_dsp_tests.exe
+            build/UI/Release/OGEQ.exe
           if-no-files-found: warn
