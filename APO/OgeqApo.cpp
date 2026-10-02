@@ -1,6 +1,7 @@
 // OgeqApo.cpp -- modern WDK APO implementation (no CBaseAudioProcessingObject).
 
 #include "OgeqApo.h"
+#include "OgeqTrace.h"
 #include <mmdeviceapi.h>
 #include <functiondiscoverykeys_devpkey.h>
 
@@ -105,6 +106,7 @@ STDMETHODIMP OgeqApo::Initialize(UINT32 cbDataSize, BYTE* pbyData) {
     }
     // If extraction failed, endpointId_ stays empty and LockForProcess
     // will use a fallback (hash of empty = deterministic but not per-endpoint).
+    OGEQ_TRACE(L"Initialize: endpointId='%s'", endpointId_[0] ? endpointId_ : L"<none>");
     return S_OK;
 }
 
@@ -195,6 +197,7 @@ STDMETHODIMP OgeqApo::LockForProcess(UINT32 u32NumInputConnections,
                                      APO_CONNECTION_DESCRIPTOR** ppInputConnections,
                                      UINT32 u32NumOutputConnections,
                                      APO_CONNECTION_DESCRIPTOR** ppOutputConnections) {
+    OGEQ_TRACE(L"LockForProcess: in=%u out=%u", u32NumInputConnections, u32NumOutputConnections);
     if (u32NumInputConnections != 1 || u32NumOutputConnections != 1)
         return E_INVALIDARG;
     if (!ppInputConnections || !ppOutputConnections)

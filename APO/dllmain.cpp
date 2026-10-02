@@ -6,6 +6,7 @@
 
 #define INITGUID  // Actually define the GUIDs declared via DEFINE_GUID
 #include "OgeqApo.h"
+#include "OgeqTrace.h"
 #include <audioenginebaseapo.h>
 #include <combaseapi.h>  // StringFromGUID2
 
@@ -56,11 +57,10 @@ public:
         if (FAILED(hr)) { delete apo; return hr; }
 
         if (pOuter) {
-            // Aggregated: return the non-delegating IUnknown.
-            // The constructor already did NonDelegatingAddRef (ref_=1).
-            *ppv = static_cast<IAudioProcessingObject*>(apo);
-            // QI for IUnknown on the APO returns the IAudioProcessingObject*,
-            // which is fine -- it's the identity.
+            // Aggregated: return the non-delegating IUnknown via proper QI.
+            OGEQ_TRACE(L"CreateInstance: aggregated, riid=IID_IUnknown");
+            hr = apo->NonDelegatingQueryInterface(IID_IUnknown, ppv);
+            apo->NonDelegatingRelease(); // Balance constructor ref; QI AddRef'd.
         } else {
             hr = apo->NonDelegatingQueryInterface(riid, ppv);
             apo->NonDelegatingRelease(); // Balance constructor ref; QI AddRef'd.
@@ -86,6 +86,7 @@ STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv) {
     if (!ppv) return E_POINTER;
     *ppv = nullptr;
     if (rclsid != CLSID_OgeqApo) return CLASS_E_CLASSNOTAVAILABLE;
+    OGEQ_TRACE(L"DllGetClassObject: creating factory");
     OgeqApoFactory* factory = new (std::nothrow) OgeqApoFactory();
     if (!factory) return E_OUTOFMEMORY;
     HRESULT hr = factory->QueryInterface(riid, ppv);
