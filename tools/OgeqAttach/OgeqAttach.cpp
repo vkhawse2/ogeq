@@ -21,13 +21,13 @@ static const wchar_t* kOgeqClsid = L"{b8122668-b395-481b-a516-03d4014e4421}";
 // PKEY_AudioEndpointPlugin_FX_* property set
 static const wchar_t* kFxPropSet = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d}";
 
-static bool EnablePrivilege(const wchar_t* name) {
+static bool EnablePrivilege(const char* name) {
     HANDLE token = nullptr;
     if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
         return false;
     TOKEN_PRIVILEGES tp{};
     tp.PrivilegeCount = 1;
-    if (!LookupPrivilegeValueW(nullptr, name, &tp.Privileges[0].Luid)) {
+    if (!LookupPrivilegeValueA(nullptr, name, &tp.Privileges[0].Luid)) {
         CloseHandle(token);
         return false;
     }
