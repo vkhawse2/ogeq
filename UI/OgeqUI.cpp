@@ -23,8 +23,56 @@ static HINSTANCE g_hInst = nullptr;
 static void UpdateValueLabel(int band) {
     wchar_t buf[32];
     float db = g_state.bandGains[band];
-    swprintf_s(buf, L"%+.1f dB", db);
+    swprintf_s(buf, L"%+.1f", db);
     SetWindowTextW(g_state.hwndValueLabels[band], buf);
+}
+
+// Show/hide sliders based on numBands; reposition for even spacing
+static void LayoutSliders(HWND hwnd) {
+    int n = g_state.numBands;
+    // Available width for sliders: from x=20 to x=700 (status panel at 730+)
+    int areaLeft = 20;
+    int areaRight = 700;
+    int areaWidth = areaRight - areaLeft;
+    int sliderW = 50;
+
+    for (int i = 0; i < OGEQ_MAX_BANDS; i++) {
+        bool visible = (i < n);
+        ShowWindow(g_state.hwndSliders[i], visible ? SW_SHOW : SW_HIDE);
+        ShowWindow(g_state.hwndFreqLabels[i], visible ? SW_SHOW : SW_HIDE);
+        ShowWindow(g_state.hwndValueLabels[i], visible ? SW_SHOW : SW_HIDE);
+        if (!visible) continue;
+
+        // Evenly space: center each slider in its slot
+        int slotW = areaWidth / n;
+        int x = areaLeft + i * slotW + (slotW - sliderW) / 2;
+        int sliderTop = 130;
+        int sliderH = 260;
+
+        SetWindowPos(g_state.hwndFreqLabels[i], nullptr,
+                     x - 30, sliderTop - 24, 110, 20, SWP_NOZORDER);
+        SetWindowTextW(g_state.hwndFreqLabels[i],
+                       n == 5 ? kBandLabels5[i] : kBandLabels10[i]);
+
+        SetWindowPos(g_state.hwndSliders[i], nullptr,
+                     x, sliderTop, sliderW, sliderH, SWP_NOZORDER);
+
+        SetWindowPos(g_state.hwndValueLabels[i], nullptr,
+                     x - 30, sliderTop + sliderH + 8, 110, 20, SWP_NOZORDER);
+    }
+}
+
+static void SetNumBands(int n) {
+    if (n != 5 && n != 10) return;
+    g_state.numBands = n;
+    // Reset gains when switching (or preserve first 5)
+    for (int i = 0; i < OGEQ_MAX_BANDS; i++) {
+        if (i >= n) g_state.bandGains[i] = 0.0f;
+        // Keep existing gains for bands that remain visible
+    }
+    LayoutSliders(g_state.hwndMain);
+    Button_SetCheck(g_state.hwndBand5Radio, n == 5 ? BST_CHECKED : BST_UNCHECKED);
+    Button_SetCheck(g_state.hwndBand10Radio, n == 10 ? BST_CHECKED : BST_UNCHECKED);
 }
 
 static void UpdateStatusBar() {
@@ -94,66 +142,72 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX,
             430, 54, 120, 24, hwnd, (HMENU)IDC_XFEED_CHECK, g_hInst, nullptr);
 
-        // --- Row 3: EQ sliders (left, wide) + Status panel (right) ---
-        int sliderStartX = 40;
-        int sliderSpacing = 110;
-        int sliderTop = 110;
-        int sliderHeight = 280;
+        // Band count toggle (5 / 10)
+        CreateWindowW(L"STATIC", L"Bands:", WS_VISIBLE | WS_CHILD,
+                      570, 56, 50, 24, hwnd, nullptr, g_hInst, nullptr);
+        g_state.hwndBand5Radio = CreateWindowW(L"BUTTON", L"5",
+            WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON | WS_GROUP,
+            620, 54, 40, 24, hwnd, (HMENU)IDC_BAND5_RADIO, g_hInst, nullptr);
+        g_state.hwndBand10Radio = CreateWindowW(L"BUTTON", L"10",
+            WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,
+            665, 54, 45, 24, hwnd, (HMENU)IDC_BAND10_RADIO, g_hInst, nullptr);
 
-        for (int i = 0; i < OGEQ_NUM_BANDS; i++) {
-            int x = sliderStartX + i * sliderSpacing;
+        // --- Row 3: EQ sliders (created for max bands, shown/hidden by toggle) ---
+        int sliderTop = 130;
+        int sliderH = 260;
+        for (int i = 0; i < OGEQ_MAX_BANDS; i++) {
+            // Frequency label (text set by LayoutSliders)
+            g_state.hwndFreqLabels[i] = CreateWindowW(L"STATIC", L"",
+                WS_CHILD | SS_CENTER,
+                0, 0, 110, 20, hwnd, (HMENU)(IDC_EQ_LABEL_BASE + i), g_hInst, nullptr);
 
-            // Frequency label above slider
-            CreateWindowW(L"STATIC", kBandLabels[i],
-                WS_VISIBLE | WS_CHILD | SS_CENTER,
-                x - 30, sliderTop - 24, 110, 20, hwnd, nullptr, g_hInst, nullptr);
-
-            // Vertical slider (TBS_VERT, TBS_BOTH because we want - at bottom)
             g_state.hwndSliders[i] = CreateWindowW(TRACKBAR_CLASSW, L"",
-                WS_VISIBLE | WS_CHILD | TBS_VERT | TBS_BOTH | TBS_NOTICKS,
-                x, sliderTop, 50, sliderHeight,
+                WS_CHILD | TBS_VERT | TBS_BOTH | TBS_NOTICKS,
+                0, 0, 50, sliderH,
                 hwnd, (HMENU)(IDC_EQ_SLIDER_BASE + i), g_hInst, nullptr);
             SendMessageW(g_state.hwndSliders[i], TBM_SETRANGE, TRUE,
                          MAKELONG(SLIDER_MIN, SLIDER_MAX));
             SendMessageW(g_state.hwndSliders[i], TBM_SETPOS, TRUE, 0);
-            // Invert: up = positive. TBS_DOWNISLEFT not set; we handle mapping.
-            // Actually for vertical: top = max. We want top = +12.
-            // TBM_SETPOS with our range: SLIDER_MAX at top.
 
-            // dB value label below slider
-            g_state.hwndValueLabels[i] = CreateWindowW(L"STATIC", L"+0.0 dB",
-                WS_VISIBLE | WS_CHILD | SS_CENTER,
-                x - 30, sliderTop + sliderHeight + 8, 110, 20,
+            g_state.hwndValueLabels[i] = CreateWindowW(L"STATIC", L"+0.0",
+                WS_CHILD | SS_CENTER,
+                0, 0, 110, 20,
                 hwnd, (HMENU)(IDC_EQ_VALUE_BASE + i), g_hInst, nullptr);
 
             g_state.bandGains[i] = 0.0f;
         }
 
-        // Status panel (right side)
-        int panelX = 640;
+        // Default to 5 bands
+        g_state.numBands = 5;
+        Button_SetCheck(g_state.hwndBand5Radio, BST_CHECKED);
+        LayoutSliders(hwnd);
+
+        // Status panel (right side, after slider area)
+        int panelX = 730;
+        int panelTop = 100;
         CreateWindowW(L"BUTTON", L"Status",
             WS_VISIBLE | WS_CHILD | BS_GROUPBOX,
-            panelX, sliderTop - 30, 230, 200, hwnd, nullptr, g_hInst, nullptr);
+            panelX, panelTop, 240, 200, hwnd, nullptr, g_hInst, nullptr);
 
         CreateWindowW(L"STATIC", L"Heartbeat:", WS_VISIBLE | WS_CHILD,
-                      panelX + 16, sliderTop, 90, 20, hwnd, nullptr, g_hInst, nullptr);
+                      panelX + 16, panelTop + 30, 90, 20, hwnd, nullptr, g_hInst, nullptr);
         g_state.hwndHeartbeat = CreateWindowW(L"STATIC", L"--",
             WS_VISIBLE | WS_CHILD | SS_LEFT,
-            panelX + 110, sliderTop, 100, 20, hwnd, (HMENU)IDC_STATUS_HEARTBEAT,
+            panelX + 110, panelTop + 30, 110, 20, hwnd, (HMENU)IDC_STATUS_HEARTBEAT,
             g_hInst, nullptr);
 
         CreateWindowW(L"STATIC", L"Path:", WS_VISIBLE | WS_CHILD,
-                      panelX + 16, sliderTop + 30, 90, 20, hwnd, nullptr, g_hInst, nullptr);
+                      panelX + 16, panelTop + 60, 90, 20, hwnd, nullptr, g_hInst, nullptr);
         g_state.hwndPath = CreateWindowW(L"STATIC", L"Detached",
             WS_VISIBLE | WS_CHILD | SS_LEFT,
-            panelX + 110, sliderTop + 30, 100, 20, hwnd, (HMENU)IDC_STATUS_PATH,
+            panelX + 110, panelTop + 60, 110, 20, hwnd, (HMENU)IDC_STATUS_PATH,
             g_hInst, nullptr);
 
         CreateWindowW(L"STATIC", L"Breaker:", WS_VISIBLE | WS_CHILD,
-                      panelX + 16, sliderTop + 60, 90, 20, hwnd, nullptr, g_hInst, nullptr);
+                      panelX + 16, panelTop + 90, 90, 20, hwnd, nullptr, g_hInst, nullptr);
         g_state.hwndBreaker = CreateWindowW(L"STATIC", L"OK",
             WS_VISIBLE | WS_CHILD | SS_LEFT,
-            panelX + 110, sliderTop + 60, 100, 20, hwnd, (HMENU)IDC_STATUS_BREAKER,
+            panelX + 110, panelTop + 90, 110, 20, hwnd, (HMENU)IDC_STATUS_BREAKER,
             g_hInst, nullptr);
 
         // --- Row 4: Status bar ---
@@ -175,10 +229,9 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
     case WM_VSCROLL: {
         // EQ slider moved
         HWND hwndSlider = (HWND)lParam;
-        for (int i = 0; i < OGEQ_NUM_BANDS; i++) {
+        for (int i = 0; i < OGEQ_MAX_BANDS; i++) {
             if (hwndSlider == g_state.hwndSliders[i]) {
                 int pos = (int)SendMessageW(hwndSlider, TBM_GETPOS, 0, 0);
-                // Vertical slider: top = max (SLIDER_MAX = +120 = +12.0 dB)
                 g_state.bandGains[i] = (float)pos / 10.0f;
                 UpdateValueLabel(i);
                 // TODO: push to APO via shared memory / service
@@ -194,23 +247,48 @@ static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
         int code = HIWORD(wParam);
         if (id == IDC_PRESET_COMBO && code == CBN_SELCHANGE) {
             int sel = ComboBox_GetCurSel(g_state.hwndPresetCombo);
-            // Preset gains: {60, 230, 910, 3600, 14000}
-            static const float presets[][OGEQ_NUM_BANDS] = {
-                { 0, 0, 0, 0, 0 },       // Flat
-                { 6, 3, 0, 0, 0 },       // Bass Boost
-                { 0, 0, 0, 2, 5 },       // Treble Boost
-                { -2, 0, 3, 4, 1 },      // Vocal Boost
-                { 5, 2, 0, 1, 4 },       // Loudness
-                { 0, 0, 0, 0, 0 },       // Custom (keep current)
-            };
-            if (sel >= 0 && sel < 5) {
-                for (int i = 0; i < OGEQ_NUM_BANDS; i++) {
-                    g_state.bandGains[i] = presets[sel][i];
-                    SendMessageW(g_state.hwndSliders[i], TBM_SETPOS, TRUE,
-                                 (int)(presets[sel][i] * 10));
-                    UpdateValueLabel(i);
+            int n = g_state.numBands;
+            // Apply preset to visible bands
+            if (n == 5) {
+                static const float presets5[][5] = {
+                    { 0, 0, 0, 0, 0 },       // Flat
+                    { 6, 3, 0, 0, 0 },       // Bass Boost
+                    { 0, 0, 0, 2, 5 },       // Treble Boost
+                    { -2, 0, 3, 4, 1 },      // Vocal Boost
+                    { 5, 2, 0, 1, 4 },       // Loudness
+                };
+                if (sel >= 0 && sel < 5) {
+                    for (int i = 0; i < 5; i++) {
+                        g_state.bandGains[i] = presets5[sel][i];
+                        SendMessageW(g_state.hwndSliders[i], TBM_SETPOS, TRUE,
+                                     (int)(presets5[sel][i] * 10));
+                        UpdateValueLabel(i);
+                    }
+                }
+            } else {
+                // 10-band presets (interpolated)
+                static const float presets10[][OGEQ_MAX_BANDS] = {
+                    { 0,0,0,0,0,0,0,0,0,0 },                 // Flat
+                    { 6,5,4,3,2,0,0,0,0,0 },                 // Bass Boost
+                    { 0,0,0,0,0,1,2,3,4,5 },                 // Treble Boost
+                    { -2,-1,0,1,3,4,3,2,1,0 },               // Vocal Boost
+                    { 5,4,3,2,0,0,1,2,3,4 },                 // Loudness
+                };
+                if (sel >= 0 && sel < 5) {
+                    for (int i = 0; i < OGEQ_MAX_BANDS; i++) {
+                        g_state.bandGains[i] = presets10[sel][i];
+                        SendMessageW(g_state.hwndSliders[i], TBM_SETPOS, TRUE,
+                                     (int)(presets10[sel][i] * 10));
+                        UpdateValueLabel(i);
+                    }
                 }
             }
+        }
+        else if (id == IDC_BAND5_RADIO) {
+            SetNumBands(5);
+        }
+        else if (id == IDC_BAND10_RADIO) {
+            SetNumBands(10);
         }
         else if (id == IDC_BYPASS_CHECK) {
             g_state.bypass = Button_GetCheck(g_state.hwndBypassCheck) == BST_CHECKED;
