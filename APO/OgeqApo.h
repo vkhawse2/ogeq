@@ -41,6 +41,7 @@ public:
     STDMETHODIMP GetInputChannelCount(UINT32* pu32ChannelCount) override;
     STDMETHODIMP GetLatency(HNSTIME* pTime) override;
     STDMETHODIMP GetRegistrationProperties(APO_REG_PROPERTIES** ppRegProps) override;
+    STDMETHODIMP Reset() override;
     STDMETHODIMP IsInputFormatSupported(IAudioMediaType* pOutputFormat,
                                         IAudioMediaType* pRequestedInputFormat,
                                         IAudioMediaType** ppSupportedInputFormat) override;
@@ -60,8 +61,8 @@ public:
                                    APO_CONNECTION_PROPERTY** ppInputConnections,
                                    UINT32 u32NumOutputConnections,
                                    APO_CONNECTION_PROPERTY** ppOutputConnections) override;
-    STDMETHODIMP CalcInputFrames(UINT32 u32OutputFrameCount, UINT32* pu32InputFrameCount) override;
-    STDMETHODIMP CalcOutputFrames(UINT32 u32InputFrameCount, UINT32* pu32OutputFrameCount) override;
+    STDMETHODIMP_(UINT32) CalcInputFrames(UINT32 u32OutputFrameCount) override;
+    STDMETHODIMP_(UINT32) CalcOutputFrames(UINT32 u32InputFrameCount) override;
 
     // Non-delegating IUnknown for aggregation
     STDMETHODIMP NonDelegatingQueryInterface(REFIID riid, void** ppv);

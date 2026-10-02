@@ -97,26 +97,31 @@ STDMETHODIMP OgeqApo::GetLatency(HNSTIME* pTime) {
 
 STDMETHODIMP OgeqApo::GetRegistrationProperties(APO_REG_PROPERTIES** ppRegProps) {
     if (!ppRegProps) return E_POINTER;
-    // The engine reads registration from the registry (DllRegisterServer),
-    // not from here, for sysfx. Return minimal.
     *ppRegProps = nullptr;
     return E_NOTIMPL;
 }
 
-// Helper: extract WAVEFORMATEX from IAudioMediaType
+STDMETHODIMP OgeqApo::Reset() {
+    // Reset DSP state (called when the engine wants a clean slate).
+    dsp_.configure((float)sampleRate_, (int)channels_);
+    return S_OK;
+}
+
+// Helper: extract WAVEFORMATEX from IAudioMediaType.
+// Returns a heap-allocated copy the caller must delete[] as BYTE*.
 HRESULT OgeqApo::GetFloat32Format(IAudioMediaType* pFormat, WAVEFORMATEX** ppWfex) {
     if (!pFormat || !ppWfex) return E_POINTER;
     *ppWfex = nullptr;
 
-    UINT32 cbSize = 0;
-    HRESULT hr = pFormat->GetAudioFormat(cbSize, nullptr);
-    if (hr != E_NOT_SUFFICIENT_BUFFER && FAILED(hr)) return hr;
+    // Modern IAudioMediaType::GetAudioFormat returns const WAVEFORMATEX*
+    const WAVEFORMATEX* wfex = pFormat->GetAudioFormat();
+    if (!wfex) return E_POINTER;
 
+    // Copy it (we need a mutable copy for our checks; actually just read it)
+    UINT32 cbSize = sizeof(WAVEFORMATEX) + wfex->cbSize;
     BYTE* buf = new (std::nothrow) BYTE[cbSize];
     if (!buf) return E_OUTOFMEMORY;
-
-    hr = pFormat->GetAudioFormat(cbSize, (WAVEFORMATEX*)buf);
-    if (FAILED(hr)) { delete[] buf; return hr; }
+    memcpy(buf, wfex, cbSize);
 
     *ppWfex = (WAVEFORMATEX*)buf;
     return S_OK;
@@ -166,7 +171,7 @@ STDMETHODIMP OgeqApo::LockForProcess(UINT32 u32NumInputConnections,
                                      UINT32 u32NumOutputConnections,
                                      APO_CONNECTION_DESCRIPTOR** ppOutputConnections) {
     if (u32NumInputConnections != 1 || u32NumOutputConnections != 1)
-        return APOERR_INVALID_CONNECTION_COUNT;
+        return E_INVALIDARG;
     if (!ppInputConnections || !ppOutputConnections)
         return E_POINTER;
 
@@ -254,16 +259,12 @@ STDMETHODIMP_(void) OgeqApo::APOProcess(UINT32 u32NumInputConnections,
     status_.heartbeat();
 }
 
-STDMETHODIMP OgeqApo::CalcInputFrames(UINT32 u32OutputFrameCount, UINT32* pu32InputFrameCount) {
-    if (!pu32InputFrameCount) return E_POINTER;
-    *pu32InputFrameCount = u32OutputFrameCount;  // 1:1 (no resampling)
-    return S_OK;
+STDMETHODIMP_(UINT32) OgeqApo::CalcInputFrames(UINT32 u32OutputFrameCount) {
+    return u32OutputFrameCount;  // 1:1 (no resampling)
 }
 
-STDMETHODIMP OgeqApo::CalcOutputFrames(UINT32 u32InputFrameCount, UINT32* pu32OutputFrameCount) {
-    if (!pu32OutputFrameCount) return E_POINTER;
-    *pu32OutputFrameCount = u32InputFrameCount;  // 1:1
-    return S_OK;
+STDMETHODIMP_(UINT32) OgeqApo::CalcOutputFrames(UINT32 u32InputFrameCount) {
+    return u32InputFrameCount;  // 1:1
 }
 
 } // namespace ogeq
