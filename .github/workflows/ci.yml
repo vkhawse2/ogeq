@@ -41,6 +41,6 @@ jobs:
         with:
           name: ogeq-${{ env.OGEQ_VERSION }}-${{ github.sha }}
           path: |
-            build/UI/Release/OGEQ.exe
-            build/APO/Release/OGEQ_APO.dll
+            build/tools/TestPlayer/Release/ogeq_player.exe
+            build/Tests/Release/ogeq_dsp_tests.exe
           if-no-files-found: warn
